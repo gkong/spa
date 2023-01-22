@@ -81,3 +81,8 @@ To run the example:
 	# visit http://localhost:8000 in a web browser.
 	# navigate between the two available pages, home and about, to observe history management.
 	# visit http://localhost:8000/about to observe deep link handling.
+
+## install
+
+	npm install git://github.com/gkong/spa.git#main
+
