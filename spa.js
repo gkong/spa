@@ -10,7 +10,6 @@
 // this module adds history and scroll position management.
 
 module.exports = { init, visit, replace, scrollTo };
-// export default { init, visit, replace, scrollTo };
 
 const SCROLL_RETRY_MS = 50;      // interval between scroll retries
 const SCROLL_TIMEOUT_MS = 5000;  // how long to try to scroll before giving up
@@ -19,17 +18,17 @@ const RS_MIN_IVL_MS = 100;       // for rate-limiting calls to scroll handler
 var router;  // function to execute routes, will be called with a single path arg
 var logging = false;
 
-
 // var prevState = spa.init({
-//     router: function(pathString) {},  // function to execute client-side routes
-//     logging: boolean,                 // send log messages via console.log()
+//     router: function(path) {},  // function to execute client-side routes
+//     logging: boolean,           // send log messages via console.log()
 // });
-//
-// it looks for an existing history stack entry and, if it finds one of its
-// own making, returns it, otherwise it returns null.
-//
-// it makes sure the history stack contains at least one entry and that the
+// 
+// spa.init() makes sure the history stack contains at least one entry and that the
 // current entry's path is set to the current value of window.location.pathname.
+//
+// if we have already loaded and rendered one or more pages, and the browser is now 
+// re-starting us, spa.init() returns an object containing previously-saved scrollx
+// and scrolly values, so we can restore the scroll state, otherwise, it returns null.
 
 function init(params) {
 	if (params.hasOwnProperty('logging'))
@@ -62,7 +61,7 @@ function init(params) {
 	return retVal;
 }
 
-// navigate to a client-side "page," pushing an entry onto the history stack.
+// visit a page, pushing it onto the history stack
 function visit(path) {
 	if (logging)
 		console.log("spa.visit - " + path);
@@ -79,7 +78,7 @@ function visit(path) {
 	router(path);
 }
 
-// replace client-side "page," WITHOUT pushing anything onto the history stack.
+// visit a page, replacing the current page in the history stack
 function replace(path) {
 	if (logging)
 		console.log("spa.replace - " + path);

@@ -1,0 +1,8 @@
+
+node_modules/**
+
+/example/node_modules/**
+/example/go.mod
+/example/package.json
+/example/package-lock.json
+/example/server
