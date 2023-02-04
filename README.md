@@ -3,9 +3,9 @@
 This module provides history and scroll position management. Add a client-side router, to complete the basic plumbing of a single-page app.
 
 ## features
-- manages the browser history stack. Forward and back buttons work as expected, both for script-initiated browsing, via `spa.visit()`, and for browsing initiated via user clicks on anchor tags.
+- manages the browser history stack, for script-initiated browsing, via `spa.visit()`, for browsing initiated via user clicks on anchor tags and the forward and back buttons, and for navigation via history.forward() and history.back().
 - manages scroll position, so moving forward or backward in the history stack shows pages scrolled to where you left them, even if the browser has scrolled back to the top of the page or completely re-initialized JavaScript.
-- zero dependencies. Minified and gzipped, it occupies less than 1000 bytes. When used together with zero-dependency client-side router, `rlite-router`, it makes a bundle of less than 1800 bytes.
+- zero dependencies. Minified and gzipped, it occupies less than 1000 bytes. When used together with zero-dependency client-side router, [rlite](https://github.com/chrisdavies/rlite), it makes a bundle of less than 1800 bytes.
 
 ## API
 
@@ -26,7 +26,9 @@ This module provides history and scroll position management. Add a client-side r
 
 ## example
 
-The following example, included in the `example` directory, implements a minimal single-page app, with two pages, Home and About, with page navigation, history management, and deep link handling (which requires server support, see below). This example uses `rlite-router`, but you can use any client-side router.
+The following example, included in the `example` directory, implements a minimal single-page app, with two pages, Home and About, with page navigation, history management, and deep link handling. It uses [rlite](https://github.com/chrisdavies/rlite) for client-side routing.
+
+Deep-link handling requires server support. See the comments in [example/server.go](https://github.com/gkong/spa/blob/main/example/server.go).
 
 	var rlite = require('rlite-router');
 	var spa = require('spa-components');
@@ -69,7 +71,7 @@ The following example, included in the `example` directory, implements a minimal
 The `example` directory includes:
 - the above example and a minimal `index.html`
 - the above example bundled via browserify
-- a very simple server implemented in 15 lines of golang code, which serves `index.html` for all routes other than a single javascript bundle, thereby giving the front end the opportunity to handle deep links.
+- a very simple server, which serves `index.html` and supports deep links.
 
 To run the example:
 
@@ -86,3 +88,10 @@ To run the example:
 
 	npm install git://github.com/gkong/spa.git#main
 
+## acknowledgements
+
+The click-handling code is a simplified version of the click handler in [page.js](https://github.com/visionmedia/page.js).
+
+## status
+
+This code has been in small production for several years.
