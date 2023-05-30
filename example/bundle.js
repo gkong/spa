@@ -1,13 +1,24 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var rlite = require('rlite-router');
-var spa = require('spa-components');
+// var spa = require('spa-components');
+var spa = require('../spa.js');
+
+const clientVersion = "1";
 
 const page = document.getElementById('page');
 
+// declarations of "pages" with their client-internal URL paths
+// and the JavaScript functions which implement them
 const route = rlite(notFound, {
 	'/':       homePage,
 	'/about':  aboutPage,
 });
+
+// here we create a function named get() which we can use to issue REST API GET requests,
+// including our middleware functions which implement automatic client version update
+// by sending the client version with every request and looking for an "update-yourself"
+// directive in every response from the back end.
+var get = spa.httpReqFunc("GET", reqCB, beforeCB, undefined, undefined, undefined);
 
 var prevState = spa.init({ router: route });
 route(window.location.pathname);
@@ -19,9 +30,22 @@ function homePage() {
 	page.innerHTML = `
 		<h1>Home</h1>
 		<a href="/about">About Page (via browser navigation)</a> <br/> <br/>
-		<button id="aButton" type="button">About Page (via script)</button>
+		<button id="aButton" type="button">About Page (via script)</button> <br/> <br/>
+		<button id="pingButton" type="button">ping the server</button>
+		<span id="pingMessage">ping received</span>
 		`;
 	document.getElementById('aButton').onclick = function() { spa.visit('/about'); };
+
+	var pm = document.getElementById('pingMessage');
+	pm.style.visibility = "hidden";
+	pm.style.padding = "0 0 0 40px";
+	document.getElementById('pingButton').onclick = function() {
+		// REST API call
+		get("/ping").then(function(okXHR) {
+			pm.style.visibility = "visible";
+			setTimeout(() => { pm.style.visibility = "hidden"}, 1000);
+		});
+	};
 }
 
 function aboutPage() {
@@ -34,7 +58,19 @@ function notFound() {
 	page.innerHTML = '<h1>404</h1>';
 }
 
-},{"rlite-router":2,"spa-components":3}],2:[function(require,module,exports){
+function reqCB(req, method, url) { 
+	req.setRequestHeader("Client-Version", clientVersion);
+}
+
+function beforeCB(resp, method, url) {
+	if (resp.getResponseHeader("Client-Update-Required") === "true") {
+		alert("Due to a server software upgrade, this app will now be reloaded.");
+		history.replaceState({}, "", "/");
+		window.location.reload(true);
+	}	
+}
+
+},{"../spa.js":3,"rlite-router":2}],2:[function(require,module,exports){
 // This library started as an experiment to see how small I could make
 // a functional router. It has since been optimized (and thus grown).
 // The redundancy and inelegance here is for the sake of either size
@@ -170,10 +206,9 @@ function notFound() {
 // spa - zero-dependency single-page-app front-end components
 //
 // Bring your own client-side router (e.g. github.com/chrisdavies/rlite, which is also zero-dependency).
-// this module adds history and scroll position management.
+// this module adds history and scroll position management and a simple XMLHttpRequest wrapper.
 
-module.exports = { init, visit, replace, scrollTo };
-// export default { init, visit, replace, scrollTo };
+module.exports = { init, visit, replace, scrollTo, httpReqFunc };
 
 const SCROLL_RETRY_MS = 50;      // interval between scroll retries
 const SCROLL_TIMEOUT_MS = 5000;  // how long to try to scroll before giving up
@@ -182,17 +217,17 @@ const RS_MIN_IVL_MS = 100;       // for rate-limiting calls to scroll handler
 var router;  // function to execute routes, will be called with a single path arg
 var logging = false;
 
-
 // var prevState = spa.init({
-//     router: function(pathString) {},  // function to execute client-side routes
-//     logging: boolean,                 // send log messages via console.log()
+//     router: function(path) {},  // function to execute client-side routes
+//     logging: boolean,           // send log messages via console.log()
 // });
-//
-// it looks for an existing history stack entry and, if it finds one of its
-// own making, returns it, otherwise it returns null.
-//
-// it makes sure the history stack contains at least one entry and that the
+// 
+// spa.init() makes sure the history stack contains at least one entry and that the
 // current entry's path is set to the current value of window.location.pathname.
+//
+// if we have already loaded and rendered one or more pages, and the browser is now 
+// re-starting us, spa.init() returns an object containing previously-saved scrollx
+// and scrolly values, so we can restore the scroll state, otherwise, it returns null.
 
 function init(params) {
 	if (params.hasOwnProperty('logging'))
@@ -225,7 +260,7 @@ function init(params) {
 	return retVal;
 }
 
-// navigate to a client-side "page," pushing an entry onto the history stack.
+// visit a page, pushing it onto the history stack
 function visit(path) {
 	if (logging)
 		console.log("spa.visit - " + path);
@@ -242,7 +277,7 @@ function visit(path) {
 	router(path);
 }
 
-// replace client-side "page," WITHOUT pushing anything onto the history stack.
+// visit a page, replacing the current page in the history stack
 function replace(path) {
 	if (logging)
 		console.log("spa.replace - " + path);
@@ -385,5 +420,41 @@ function sameOrigin(href) {
 	return (href && (0 === href.indexOf(origin)));
 }
 
+// call httpReqFunc() to make convenience HTTP request functions which close over your custom middleware.
+// all middleware callbacks have the form:
+//     function cb(xhr, method, url) { }
+// any or all of the callbacks can be undefined.
+// the functions you make with httpReqFunc() return promises.
+
+function httpReqFunc(method, reqCB, respBeforeCB, respSuccessCB, respFailureCB, respAfterCB) {
+	return function(url, data) {  // data arg is optional
+		return new Promise(function(resolve, reject) {
+			function respHandler() {
+				if (this.readyState === this.DONE) {
+					if (respBeforeCB !== undefined)
+						respBeforeCB(this, method, url);
+					if (this.status === 200) {
+						if (respSuccessCB !== undefined)
+							respSuccessCB(this, method, url);
+						resolve(this);
+					} else {
+						if (respFailureCB !== undefined)
+							respFailureCB(this, method, url);
+						reject(this);
+					}
+					if (respAfterCB !== undefined)
+						respAfterCB(this, method, url);
+				}
+			}
+
+			var req = new XMLHttpRequest();
+			req.open(method, url);
+			if (reqCB !== undefined)
+				reqCB(req, method, url);
+			req.onreadystatechange = respHandler;
+			req.send(data);
+		});
+	}
+}
 
 },{}]},{},[1]);

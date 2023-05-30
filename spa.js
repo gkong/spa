@@ -7,9 +7,9 @@
 // spa - zero-dependency single-page-app front-end components
 //
 // Bring your own client-side router (e.g. github.com/chrisdavies/rlite, which is also zero-dependency).
-// this module adds history and scroll position management.
+// this module adds history and scroll position management and a simple XMLHttpRequest wrapper.
 
-module.exports = { init, visit, replace, scrollTo };
+module.exports = { init, visit, replace, scrollTo, httpReqFunc };
 
 const SCROLL_RETRY_MS = 50;      // interval between scroll retries
 const SCROLL_TIMEOUT_MS = 5000;  // how long to try to scroll before giving up
@@ -221,3 +221,39 @@ function sameOrigin(href) {
 	return (href && (0 === href.indexOf(origin)));
 }
 
+// call httpReqFunc() to make convenience HTTP request functions which close over your custom middleware.
+// all middleware callbacks have the form:
+//     function cb(xhr, method, url) { }
+// any or all of the callbacks can be undefined.
+// the functions you make with httpReqFunc() return promises.
+
+function httpReqFunc(method, reqCB, respBeforeCB, respSuccessCB, respFailureCB, respAfterCB) {
+	return function(url, data) {  // data arg is optional
+		return new Promise(function(resolve, reject) {
+			function respHandler() {
+				if (this.readyState === this.DONE) {
+					if (respBeforeCB !== undefined)
+						respBeforeCB(this, method, url);
+					if (this.status === 200) {
+						if (respSuccessCB !== undefined)
+							respSuccessCB(this, method, url);
+						resolve(this);
+					} else {
+						if (respFailureCB !== undefined)
+							respFailureCB(this, method, url);
+						reject(this);
+					}
+					if (respAfterCB !== undefined)
+						respAfterCB(this, method, url);
+				}
+			}
+
+			var req = new XMLHttpRequest();
+			req.open(method, url);
+			if (reqCB !== undefined)
+				reqCB(req, method, url);
+			req.onreadystatechange = respHandler;
+			req.send(data);
+		});
+	}
+}
