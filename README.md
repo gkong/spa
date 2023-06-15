@@ -26,13 +26,14 @@ Add a client-side router, to complete the basic plumbing of a single-page app.
 
 	spa.scrollTo(targetx, targety);  // call this to restore scroll position after spa.init(), if necessary
 
-	// call httpReqFunc() to make convenience HTTP request functions which close over your custom middleware.
-	// all middleware callbacks have the form:
+	// call httpReqFunc() to make convenience HTTP request functions which close over your custom middleware and return promises.
+	// middleware callbacks can be undefined have the form:
 	//     function cb(xhr, method, url) { }
-	// any or all of the callbacks can be undefined.
-	// the functions you make with httpReqFunc() return promises.
+	// reqCB - called before every request
+	// respSuccessCB, respFailureCB - called after a response is received and before the handler is called
+	// respAfterCB = called after the handler returns
 
-	spa.httpReqFunc(method, reqCB, respBeforeCB, respSuccessCB, respFailureCB, respAfterCB);
+	spa.httpReqFunc(method, reqCB, respSuccessCB, respFailureCB, respAfterCB);
 
 ## example
 
@@ -52,7 +53,7 @@ The `example` directory includes:
 To run the example:
 
 	# install golang from go.dev
-	cd examples
+	cd example
 	go mod init server
 	go build
 	./server

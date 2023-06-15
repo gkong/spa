@@ -221,20 +221,19 @@ function sameOrigin(href) {
 	return (href && (0 === href.indexOf(origin)));
 }
 
-// call httpReqFunc() to make convenience HTTP request functions which close over your custom middleware.
-// all middleware callbacks have the form:
+// call httpReqFunc() to make convenience HTTP request functions which close over your custom middleware and return promises.
+// middleware callbacks can be undefined have the form:
 //     function cb(xhr, method, url) { }
-// any or all of the callbacks can be undefined.
-// the functions you make with httpReqFunc() return promises.
+// reqCB - called before every request
+// respSuccessCB, respFailureCB - called after a response is received and before the handler is called
+// respAfterCB = called after the handler returns
 
-function httpReqFunc(method, reqCB, respBeforeCB, respSuccessCB, respFailureCB, respAfterCB) {
+function httpReqFunc(method, reqCB, respSuccessCB, respFailureCB, respAfterCB) {
 	return function(url, data) {  // data arg is optional
 		return new Promise(function(resolve, reject) {
 			function respHandler() {
 				if (this.readyState === this.DONE) {
-					if (respBeforeCB !== undefined)
-						respBeforeCB(this, method, url);
-					if (this.status === 200) {
+					if (this.status >= 200  &&  this.status < 300) {
 						if (respSuccessCB !== undefined)
 							respSuccessCB(this, method, url);
 						resolve(this);
