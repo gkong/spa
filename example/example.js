@@ -16,7 +16,7 @@ const route = rlite(notFound, {
 // including our middleware functions which implement automatic client version update
 // by sending the client version with every request and looking for an "update-yourself"
 // directive in every response from the back end.
-var get = spa.httpReqFunc("GET", reqCB, beforeCB, beforeCB, undefined);
+var get = spa.httpReqFunc("GET", "", reqCB, beforeCB, beforeCB, undefined);
 
 var prevState = spa.init({ router: route });
 route(window.location.pathname);

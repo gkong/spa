@@ -1,4 +1,4 @@
-# spa - zero-dependency single-page app front-end components
+# spa-components - zero-dependency single-page app / progressive web app (PWA) JavaScript library
 
 This module provides history and scroll position management and a simple XMLHttpRequest wrapper.
 Add a client-side router, to complete the basic plumbing of a single-page app.
@@ -26,14 +26,19 @@ Add a client-side router, to complete the basic plumbing of a single-page app.
 
 	spa.scrollTo(targetx, targety);  // call this to restore scroll position after spa.init(), if necessary
 
-	// call httpReqFunc() to make convenience HTTP request functions which close over your custom middleware and return promises.
-	// middleware callbacks can be undefined have the form:
+	// httpReqFunc() makes convenience HTTP request functions of the form:
+	//     function(url, data) { }
+	// which close over your custom middleware and return a promise whose
+	// success and error results are XMLHttpRequest objects.
+	//
+	// middleware callbacks have the following form (and can be undefined):
 	//     function cb(xhr, method, url) { }
+	//
 	// reqCB - called before every request
 	// respSuccessCB, respFailureCB - called after a response is received and before the handler is called
 	// respAfterCB = called after the handler returns
 
-	spa.httpReqFunc(method, reqCB, respSuccessCB, respFailureCB, respAfterCB);
+	spa.httpReqFunc(method, urlPrefix, reqCB, respSuccessCB, respFailureCB, respAfterCB);
 
 ## example
 
@@ -66,7 +71,7 @@ To run the example:
 
 ## install
 
-	npm install git://github.com/gkong/spa.git#main
+	npm install git://github.com/gkong/spa.git
 
 ## acknowledgements
 
@@ -74,4 +79,4 @@ The click-handling code is a simplified version of the click handler in [page.js
 
 ## status
 
-This code has been in small production for several years.
+This code has been in small-to-medium-scale production for several years.
