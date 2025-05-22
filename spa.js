@@ -54,7 +54,7 @@ function init(params) {
 			scrollx: window.scrollX,
 			scrolly: window.scrollY,
 			path: window.location.pathname,
-		}, "", window.location.pathname);
+		}, "", window.location.pathname + window.location.search);
 		retVal = null;
 	}
 
