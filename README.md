@@ -17,7 +17,8 @@ Add a client-side router, to complete the basic plumbing of a single-page app.
 
 	spa.init({
 		router: function(path) {},   // function to execute client-side routes
-		logging: boolean             // send log messages via console.log()
+		navCB: function(path) {},    // (optional) function that will be called when entering visit() or replace()
+		logging: boolean             // (optional) send log messages via console.log()
 	});
 
 	spa.visit(path);                 // visit a page, pushing it onto the history stack

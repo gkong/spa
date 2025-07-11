@@ -1,6 +1,5 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var rlite = require('rlite-router');
-// var spa = require('spa-components');
 var spa = require('../spa.js');
 
 const clientVersion = "1";
@@ -18,7 +17,7 @@ const route = rlite(notFound, {
 // including our middleware functions which implement automatic client version update
 // by sending the client version with every request and looking for an "update-yourself"
 // directive in every response from the back end.
-var get = spa.httpReqFunc("GET", reqCB, beforeCB, undefined, undefined, undefined);
+var get = spa.httpReqFunc("GET", "", reqCB, beforeCB, beforeCB, undefined);
 
 var prevState = spa.init({ router: route });
 route(window.location.pathname);
@@ -216,9 +215,11 @@ const RS_MIN_IVL_MS = 100;       // for rate-limiting calls to scroll handler
 
 var router;  // function to execute routes, will be called with a single path arg
 var logging = false;
+var navCB = function(path) {}
 
 // var prevState = spa.init({
 //     router: function(path) {},  // function to execute client-side routes
+//     navCB: function(path) {},   // function that will be called when entering visit() or replace()
 //     logging: boolean,           // send log messages via console.log()
 // });
 // 
@@ -232,6 +233,9 @@ var logging = false;
 function init(params) {
 	if (params.hasOwnProperty('logging'))
 		logging = params.logging;
+
+	if (params.hasOwnProperty('navCB'))
+		navCB = params.navCB;
 
 	if (logging)
 		console.log("spa.init - " + window.location.pathname + "  --  " + JSON.stringify(history.state));
@@ -253,7 +257,7 @@ function init(params) {
 			scrollx: window.scrollX,
 			scrolly: window.scrollY,
 			path: window.location.pathname,
-		}, "", window.location.pathname);
+		}, "", window.location.pathname + window.location.search);
 		retVal = null;
 	}
 
@@ -264,6 +268,8 @@ function init(params) {
 function visit(path) {
 	if (logging)
 		console.log("spa.visit - " + path);
+
+	navCB(path);
 
 	saveScroll();
 
@@ -281,6 +287,8 @@ function visit(path) {
 function replace(path) {
 	if (logging)
 		console.log("spa.replace - " + path);
+
+	navCB(path);
 
 	history.replaceState( {
 		scrollx: 0,
@@ -420,20 +428,24 @@ function sameOrigin(href) {
 	return (href && (0 === href.indexOf(origin)));
 }
 
-// call httpReqFunc() to make convenience HTTP request functions which close over your custom middleware.
-// all middleware callbacks have the form:
+// httpReqFunc() makes convenience HTTP request functions of the form:
+//     function(url, data) { }
+// which close over your custom middleware and return a promise whose
+// success and error results are XMLHttpRequest objects.
+//
+// middleware callbacks can be undefined and have the form:
 //     function cb(xhr, method, url) { }
-// any or all of the callbacks can be undefined.
-// the functions you make with httpReqFunc() return promises.
+//
+// reqCB - called before every request
+// respSuccessCB, respFailureCB - called after a response is received and before the handler is called
+// respAfterCB = called after the handler returns
 
-function httpReqFunc(method, reqCB, respBeforeCB, respSuccessCB, respFailureCB, respAfterCB) {
+function httpReqFunc(method, urlPrefix, reqCB, respSuccessCB, respFailureCB, respAfterCB) {
 	return function(url, data) {  // data arg is optional
 		return new Promise(function(resolve, reject) {
 			function respHandler() {
 				if (this.readyState === this.DONE) {
-					if (respBeforeCB !== undefined)
-						respBeforeCB(this, method, url);
-					if (this.status === 200) {
+					if (this.status >= 200  &&  this.status < 300) {
 						if (respSuccessCB !== undefined)
 							respSuccessCB(this, method, url);
 						resolve(this);
@@ -448,7 +460,7 @@ function httpReqFunc(method, reqCB, respBeforeCB, respSuccessCB, respFailureCB, 
 			}
 
 			var req = new XMLHttpRequest();
-			req.open(method, url);
+			req.open(method, urlPrefix + url);
 			if (reqCB !== undefined)
 				reqCB(req, method, url);
 			req.onreadystatechange = respHandler;

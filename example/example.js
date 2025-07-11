@@ -1,5 +1,5 @@
 var rlite = require('rlite-router');
-var spa = require('spa-components');
+var spa = require('../spa.js');
 
 const clientVersion = "1";
 

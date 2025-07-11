@@ -17,9 +17,11 @@ const RS_MIN_IVL_MS = 100;       // for rate-limiting calls to scroll handler
 
 var router;  // function to execute routes, will be called with a single path arg
 var logging = false;
+var navCB = function(path) {}
 
 // var prevState = spa.init({
 //     router: function(path) {},  // function to execute client-side routes
+//     navCB: function(path) {},   // function that will be called when entering visit() or replace()
 //     logging: boolean,           // send log messages via console.log()
 // });
 // 
@@ -33,6 +35,9 @@ var logging = false;
 function init(params) {
 	if (params.hasOwnProperty('logging'))
 		logging = params.logging;
+
+	if (params.hasOwnProperty('navCB'))
+		navCB = params.navCB;
 
 	if (logging)
 		console.log("spa.init - " + window.location.pathname + "  --  " + JSON.stringify(history.state));
@@ -66,6 +71,8 @@ function visit(path) {
 	if (logging)
 		console.log("spa.visit - " + path);
 
+	navCB(path);
+
 	saveScroll();
 
 	history.pushState({
@@ -82,6 +89,8 @@ function visit(path) {
 function replace(path) {
 	if (logging)
 		console.log("spa.replace - " + path);
+
+	navCB(path);
 
 	history.replaceState( {
 		scrollx: 0,
