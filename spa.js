@@ -172,6 +172,7 @@ function spaPopHandler(e) {
 
 	// arg is an event, whose state property is a copy of the state object
 	// that was given to pushState/replaceState.
+	navCB(e.state.path);
 	router(e.state.path);
 	scrollTo(e.state.scrollx, e.state.scrolly);
 }
